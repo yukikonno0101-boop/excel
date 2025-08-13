@@ -6,9 +6,8 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": ".vercel/output",
-    "jsx": "react-jsx"
+    "outDir": ".vercel/output"
   },
-  "include": ["api/**/*.ts", "**/*.tsx", "**/*.ts"],
+  "include": ["api/**/*.ts", "constants.ts"],
   "exclude": ["node_modules"]
 }
