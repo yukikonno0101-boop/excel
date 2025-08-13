@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { CopyIcon } from './icons/CopyIcon';
@@ -36,7 +35,7 @@ const CodeBlock: React.FC<{ code: string }> = ({ code }) => {
 };
 
 const FormattedResponse: React.FC<{ text: string }> = ({ text }) => {
-    // Split the response by one or more empty lines for robust sectioning.
+    // 堅牢なセクション分けのために、1つ以上の空行でレスポンスを分割します。
     const sections = text.split(/\n\s*\n+/).filter(section => section.trim());
 
     return (
@@ -46,7 +45,7 @@ const FormattedResponse: React.FC<{ text: string }> = ({ text }) => {
                 const firstColonIndex = trimmedSection.indexOf(':');
                 
                 if (firstColonIndex === -1) {
-                    // Handles the introductory text without a header
+                    // ヘッダーのない導入テキストを処理します。
                     return <p key={index} className="whitespace-pre-wrap text-slate-200 text-base">{trimmedSection}</p>;
                 }
 

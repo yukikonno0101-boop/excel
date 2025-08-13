@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Header } from './components/Header';
 import { FormulaInput } from './components/FormulaInput';
@@ -27,7 +26,11 @@ const App: React.FC = () => {
             setApiResponse(result);
         } catch (e) {
             console.error(e);
-            setError("エラーが発生しました。時間をおいて再度お試しください。");
+            if (e instanceof Error && (e.message.includes('API key not valid') || e.message.includes('API_KEY_INVALID'))) {
+                setError("APIキーが有効ではありません。アプリケーションの環境設定を確認してください。");
+            } else {
+                setError("数式の生成中にエラーが発生しました。コンソールで詳細を確認するか、後でもう一度お試しください。");
+            }
         } finally {
             setIsLoading(false);
         }
