@@ -1,0 +1,5 @@
+{
+  "name": "Excelコンシェルジュ",
+  "description": "Excelの関数と数式の専門家として機能するアプリケーションです。ユーザーがやりたいことを日本語または英語で入力すると、アプリが適切なExcelの数式を提案し、解説を提供します。",
+  "requestFramePermissions": []
+}
