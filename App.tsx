@@ -26,11 +26,7 @@ const App: React.FC = () => {
             setApiResponse(result);
         } catch (e) {
             console.error(e);
-            if (e instanceof Error && (e.message.includes('API key not valid') || e.message.includes('API_KEY_INVALID'))) {
-                setError("APIキーが有効ではありません。アプリケーションの環境設定を確認してください。");
-            } else {
-                setError("数式の生成中にエラーが発生しました。コンソールで詳細を確認するか、後でもう一度お試しください。");
-            }
+            setError("数式の生成中にエラーが発生しました。しばらくしてからもう一度お試しください。");
         } finally {
             setIsLoading(false);
         }

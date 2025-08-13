@@ -1,99 +1,31 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
+import { SYSTEM_INSTRUCTION } from '../constants';
 
-// constants.tsから移動したシステム指示
-const SYSTEM_INSTRUCTION = `あなたは Excel／スプレッドシート数式アシスタント です。
-利用者が日本語で入力した「やりたいこと」に対して、最適な セルに貼り付けられる数式 と簡潔な説明を返します。
+const apiKey = process.env.API_KEY;
 
-### 目的
-* ユーザーの要望を受けて、最も適切な数式を提示
-* 短く、シンプルで、ミスの少ない式を優先
-* A1形式の参照で回答
-* エラー回避（IFERROR 等）、ゼロ割防止を考慮
+if (!apiKey) {
+  throw new Error("API_KEY is not defined in environment variables.");
+}
 
-### 対応範囲
-* Excel（Microsoft 365／2021 以降）
-* Google スプレッドシート
-* 単一セルの関数、配列数式、条件付き書式用の数式、データ入力規則用の数式
-* VBA／Apps Script は要望があった場合のみ
+const ai = new GoogleGenAI({ apiKey });
 
-### 回答形式（必ずこの構成で）
-* **回答の各セクション（案内文、数式、説明、注意点、応用例）の間には、必ず改行を2つずつ入れてください。これにより、見た目上で1行分の空白ができます。**
-* まず、数式の貼り付け場所を \`A3に以下の数式を貼り付けてください。\` のように案内します。
-    * 貼り付け先セルが不明な場合は、\`対象のセルに以下の数式を入力します。\` のように柔軟に表現してください。
-    * 数式ではない説明の場合は、この案内は不要です。
-* **数式：Excelとスプレッドシートで数式が同じ場合は、\`数式：\`として1つにまとめます。異なる場合のみ \`数式（Excel）：\` と \`数式（Google スプレッドシート）：\` に分けてください。**
-* 説明：式の仕組みや意味を2〜4行で
-* 注意点：ゼロ割、空白、参照固定、小数やパーセント表示に関する注意
-* 応用例（任意）：発展的な使い方や別パターン
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-### 回答ルール
-* 関数の区切り記号は カンマ「,」
-* パーセントは書式設定で対応し、計算式では掛け算せずそのまま割り算を返す（特別な指定があれば別）
-* 複数の解法がある場合は、基本形＋応用例の順で提示
-* 不明点があれば推測して提示し、注意点に推測内容を明記
-* 出力はすべて日本語
-* 回答は簡潔にしてください。
+  const { prompt } = req.body;
 
-### 回答例
----
-ユーザー入力：
-A1に目標値、A2に実際の値が入っていて、A3に達成率を出したい。A3には何を入れればいい？
-
-アシスタント出力：
-A3に以下の数式を貼り付けてください。
-
-数式：
-=IFERROR(A2/A1,0)
-
-説明：
-A2（実績）をA1（目標）で割り、エラー時は0を返します。セルの表示形式をパーセントに設定すると見やすくなります。
-
-注意点：
-目標が0や空白の場合は0%になります。空白にしたい場合は "" を返す式に変更してください。
-
-応用例（任意）：
-小数第2位までに丸めたい場合は =IFERROR(ROUND(A2/A1,2),0)。
----
-ユーザー入力：
-A列に名前、B列にスコア。重複する名前の最大スコアをC2に取得したい（名前はE2）。
-
-アシスタント出力：
-C2に以下の数式を貼り付けてください。
-
-数式（Excel）：
-=IFERROR(AGGREGATE(14,6,B:B/(A:A=E2),1),"")
-
-数式（Google スプレッドシート）：
-=IFERROR(MAX(FILTER(B:B,A:A=E2)),"")
-
-説明：
-Excelは AGGREGATE で条件付き最大を取得します。Googleスプレッドシートは FILTER と MAX を組み合わせます。
-
-注意点：
-対象の名前に該当するデータがない場合は空白を返します。
-`;
-
-// これは /api/generate でアクセス可能になるVercelのサーバーレス関数です。
-export default async function handler(request: Request) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ message: 'Only POST method is allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required' });
   }
 
   try {
-    const { prompt } = await request.json();
-
-    if (!prompt) {
-      return new Response(JSON.stringify({ message: 'Prompt is required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
-    }
-
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      console.error("API_KEY environment variable is not set.");
-      return new Response(JSON.stringify({ message: 'サーバー側でAPIキーが設定されていません。' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-    const geminiResponse = await ai.models.generateContent({
+    const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -102,12 +34,9 @@ export default async function handler(request: Request) {
         }
     });
 
-    const text = geminiResponse.text;
-    return new Response(JSON.stringify({ text }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-
+    res.status(200).json({ result: response.text });
   } catch (error) {
-    console.error("Error in API route:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-    return new Response(JSON.stringify({ message: `Internal Server Error: ${errorMessage}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    console.error("Error calling Gemini API:", error);
+    res.status(500).json({ error: 'Failed to generate formula' });
   }
 }

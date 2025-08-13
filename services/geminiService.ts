@@ -1,23 +1,22 @@
-import { GoogleGenAI } from "@google/genai";
-import { SYSTEM_INSTRUCTION } from '../constants';
-
-// AIクライアントを一度だけ初期化します。環境変数からAPI_KEYを使用します。
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export async function generateExcelFormula(prompt: string): Promise<string> {
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
-                temperature: 0.2,
-            }
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt }),
         });
 
-        return response.text;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.result;
     } catch (error) {
-        console.error("Gemini APIの呼び出し中にエラーが発生しました:", error);
+        console.error("API呼び出し中にエラーが発生しました:", error);
         // 呼び出し元で処理できるようにエラーを再スローします
         throw error;
     }
